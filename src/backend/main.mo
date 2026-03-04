@@ -11,9 +11,9 @@ import Storage "blob-storage/Storage";
 import MixinStorage "blob-storage/Mixin";
 import AccessControl "authorization/access-control";
 
+import Migration "migration";
 
-
-
+(with migration = Migration.run)
 actor {
   include MixinStorage();
 
@@ -67,17 +67,11 @@ actor {
   // Internal state
   let profiles = Map.empty<Principal, PlayerProfile>();
   let tournamentEntries = Map.empty<Principal, List.List<TournamentEntry>>();
-  var nextEntryId : Nat = 0;
 
   module PlayerProfile {
     public func compareByOwner(profile1 : PlayerProfile, profile2 : PlayerProfile) : Order.Order {
       Principal.compare(profile1.owner, profile2.owner);
     };
-  };
-
-  /// Helper function to check if caller is anonymous.
-  func isAnonymous(caller : Principal) : Bool {
-    caller.isAnonymous();
   };
 
   // Required frontend user profile functions
@@ -112,9 +106,9 @@ actor {
     bio : Text,
     socialLinks : SocialLinks,
   ) : async () {
-    // Allow non-anonymous callers, regardless of user role
-    if (isAnonymous(caller)) {
-      Runtime.trap("Unauthorized: Anonymous callers cannot create profiles");
+    // Require user permission (non-anonymous)
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can create profiles");
     };
 
     if (profiles.containsKey(caller)) {
@@ -160,6 +154,7 @@ actor {
   };
 
   public query ({ caller }) func getApprovedProfiles() : async [PlayerProfile] {
+    // Public query - no authorization required
     let approvedProfiles = List.empty<PlayerProfile>();
     for (profile in profiles.values()) {
       if (profile.status == #approved) {
@@ -188,9 +183,9 @@ actor {
     bio : Text,
     socialLinks : SocialLinks,
   ) : async () {
-    // Allow only non-anonymous callers who are the owner of a profile
-    if (isAnonymous(caller)) {
-      Runtime.trap("Unauthorized: Anonymous callers cannot update profiles");
+    // Require user permission (non-anonymous owner)
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can update profiles");
     };
 
     switch (profiles.get(caller)) {
@@ -215,8 +210,8 @@ actor {
   };
 
   public shared ({ caller }) func updateGameTags(gameTags : [Text]) : async () {
-    if (isAnonymous(caller)) {
-      Runtime.trap("Unauthorized: Anonymous callers cannot update game tags");
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can update game tags");
     };
 
     switch (profiles.get(caller)) {
@@ -251,7 +246,7 @@ actor {
     highlightVideoUrl : ?Text,
   ) : async () {
     if (not (AccessControl.isAdmin(accessControlState, caller))) {
-      Runtime.trap("Unauthorized: Only admin can update other profiles");
+      Runtime.trap("Unauthorized: Only admins can update other profiles");
     };
 
     switch (profiles.get(owner)) {
@@ -277,7 +272,7 @@ actor {
 
   public shared ({ caller }) func approveProfile(owner : Principal) : async () {
     if (not (AccessControl.isAdmin(accessControlState, caller))) {
-      Runtime.trap("Unauthorized: Only admin can approve");
+      Runtime.trap("Unauthorized: Only admins can approve profiles");
     };
 
     switch (profiles.get(owner)) {
@@ -303,7 +298,7 @@ actor {
 
   public shared ({ caller }) func rejectProfile(owner : Principal) : async () {
     if (not (AccessControl.isAdmin(accessControlState, caller))) {
-      Runtime.trap("Unauthorized: Only admin can reject");
+      Runtime.trap("Unauthorized: Only admins can reject profiles");
     };
 
     switch (profiles.get(owner)) {
@@ -328,9 +323,9 @@ actor {
   };
 
   public shared ({ caller }) func setAvatar(avatar : Storage.ExternalBlob) : async () {
-    // Allow non-anonymous callers with an existing profile
-    if (isAnonymous(caller)) {
-      Runtime.trap("Unauthorized: Anonymous callers cannot set avatars");
+    // Require user permission (non-anonymous with existing profile)
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can set avatars");
     };
 
     switch (profiles.get(caller)) {
@@ -391,14 +386,12 @@ actor {
     };
 
     let newEntry : TournamentEntry = {
-      id = nextEntryId;
+      id = calculateNextEntryId();
       event;
       earned;
       place;
       link;
     };
-
-    nextEntryId += 1;
 
     switch (tournamentEntries.get(owner)) {
       case (?existingEntries) {
@@ -497,4 +490,18 @@ actor {
       };
     };
   };
+
+  // Helper function to calculate the next available TournamentEntry ID.
+  func calculateNextEntryId() : Nat {
+    var maxId = 0;
+    for (entryList in tournamentEntries.values()) {
+      for (entry in entryList.values()) {
+        if (entry.id > maxId) {
+          maxId := entry.id;
+        };
+      };
+    };
+    maxId + 1;
+  };
+
 };
