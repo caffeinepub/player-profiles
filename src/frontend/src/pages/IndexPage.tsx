@@ -1,4 +1,3 @@
-import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -7,32 +6,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Link } from "@tanstack/react-router";
-import { LogIn, LogOut, Shield, UserPlus, Users } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { Users } from "lucide-react";
+import { useMemo, useState } from "react";
 import { PlayerCard } from "../components/PlayerCard";
-import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import { useApprovedProfiles } from "../hooks/useQueries";
-import { useIsAdmin } from "../hooks/useQueries";
 import { getCountryName, getFlagImgUrl } from "../utils/countries";
 import { GAME_TAGS } from "../utils/tags";
-import { getPersistedUrlParameter } from "../utils/urlParams";
 
 export function IndexPage() {
   const { data: profiles, isLoading } = useApprovedProfiles();
   const [countryFilter, setCountryFilter] = useState<string>("all");
   const [trophyFilter, setTrophyFilter] = useState<string>("all");
   const [gameTagFilter, setGameTagFilter] = useState<string>("all");
-  const [isEmbed, setIsEmbed] = useState(false);
-  const { login, clear, identity, isInitializing, isLoggingIn } =
-    useInternetIdentity();
-  const { data: isAdmin } = useIsAdmin();
-  const isLoggedIn = !!identity;
-
-  useEffect(() => {
-    const val = getPersistedUrlParameter("embed");
-    setIsEmbed(val === "true" || val === "1");
-  }, []);
 
   // Unique countries present in profiles
   const presentCountries = useMemo(() => {
@@ -82,60 +67,6 @@ export function IndexPage() {
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-8">
-      {/* Embed mode: inline login bar */}
-      {isEmbed && (
-        <div className="mb-6 flex items-center justify-between gap-3 rounded border border-border bg-card px-4 py-2.5">
-          <span className="text-sm text-muted-foreground">
-            {isLoggedIn
-              ? "Logged in via Internet Identity"
-              : "Log in to register your profile"}
-          </span>
-          <div className="flex items-center gap-2">
-            {isAdmin && (
-              <Button variant="ghost" size="sm" asChild>
-                <Link to="/admin" data-ocid="embed.admin.link">
-                  <Shield className="h-4 w-4 mr-1.5" />
-                  Admin
-                </Link>
-              </Button>
-            )}
-            {isLoggedIn && (
-              <Button variant="outline" size="sm" asChild>
-                <Link to="/register" data-ocid="embed.register.link">
-                  <UserPlus className="h-4 w-4 mr-1.5" />
-                  My Profile
-                </Link>
-              </Button>
-            )}
-            {isInitializing ? (
-              <div className="h-9 w-24 rounded bg-muted animate-pulse" />
-            ) : isLoggedIn ? (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={clear}
-                className="text-muted-foreground hover:text-foreground"
-                data-ocid="embed.logout.button"
-              >
-                <LogOut className="h-4 w-4 mr-1.5" />
-                Logout
-              </Button>
-            ) : (
-              <Button
-                size="sm"
-                onClick={login}
-                disabled={isLoggingIn}
-                data-ocid="embed.login.button"
-                className="bg-primary text-primary-foreground hover:bg-primary/90"
-              >
-                <LogIn className="h-4 w-4 mr-1.5" />
-                {isLoggingIn ? "Connecting..." : "Login"}
-              </Button>
-            )}
-          </div>
-        </div>
-      )}
-
       {/* Header */}
       <section className="mb-8">
         <h1 className="text-4xl font-display font-black text-foreground mb-2">
