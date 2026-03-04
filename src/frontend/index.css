@@ -1,0 +1,116 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Fonts ─────────────────────────────────────────────────────────── */
+@font-face {
+  font-family: "Bricolage Grotesque";
+  src: url("/assets/fonts/BricolageGrotesque[opsz,wdth,wght].woff2")
+    format("woff2");
+  font-weight: 100 900;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Cabinet Grotesk";
+  src: url("/assets/fonts/CabinetGrotesk-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+@layer base {
+  :root {
+    --radius: 0.25rem;
+
+    /* ── Custom RJZ palette (exact hex values mapped to OKLCH) ── */
+    /* #18181b  main-dark  → background */
+    --background: 0.139 0.004 286;
+    /* #dedede  main-text  → foreground */
+    --foreground: 0.893 0 0;
+
+    /* #2f2f37  card-bg → card */
+    --card: 0.218 0.007 286;
+    --card-foreground: 0.893 0 0;
+
+    /* #2f2f37  popover */
+    --popover: 0.218 0.007 286;
+    --popover-foreground: 0.893 0 0;
+
+    /* #ff1a1a  main-red → primary */
+    --primary: 0.577 0.246 27;
+    --primary-foreground: 0.98 0 0;
+
+    /* #3c3c44  card-hover → secondary */
+    --secondary: 0.270 0.008 286;
+    --secondary-foreground: 0.893 0 0;
+
+    /* #2f2f37  muted */
+    --muted: 0.218 0.007 286;
+    /* #525260  border-light → muted-foreground */
+    --muted-foreground: 0.405 0.012 286;
+
+    /* #3c3c44  accent */
+    --accent: 0.270 0.008 286;
+    --accent-foreground: 0.893 0 0;
+
+    --destructive: 0.577 0.246 27;
+    --destructive-foreground: 0.98 0 0;
+
+    /* #242429  border-soft → border */
+    --border: 0.178 0.006 286;
+    /* #242429  input */
+    --input: 0.178 0.006 286;
+    /* #ff1a1a  ring */
+    --ring: 0.577 0.246 27;
+
+    --chart-1: 0.577 0.246 27;
+    --chart-2: 0.55 0.18 60;
+    --chart-3: 0.45 0.12 200;
+    --chart-4: 0.65 0.16 150;
+    --chart-5: 0.70 0.20 320;
+
+    /* #0e0e0e  main-darker → sidebar */
+    --sidebar: 0.09 0.002 286;
+    --sidebar-foreground: 0.893 0 0;
+    --sidebar-primary: 0.577 0.246 27;
+    --sidebar-primary-foreground: 0.98 0 0;
+    --sidebar-accent: 0.270 0.008 286;
+    --sidebar-accent-foreground: 0.893 0 0;
+    --sidebar-border: 0.178 0.006 286;
+    --sidebar-ring: 0.577 0.246 27;
+  }
+
+  /* Force dark mode always */
+  html {
+    color-scheme: dark;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-body;
+    font-feature-settings: "kern" 1, "liga" 1;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display;
+    letter-spacing: -0.02em;
+  }
+}
+
+@layer utilities {
+  .text-glow-red {
+    text-shadow: 0 0 20px #ff1a1a80;
+  }
+  .border-glow-red {
+    box-shadow: 0 0 0 1px #ff1a1a4d,
+                0 0 12px #ff1a1a26;
+  }
+  .bg-grid-pattern {
+    background-image:
+      linear-gradient(#24242966 1px, transparent 1px),
+      linear-gradient(90deg, #24242966 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+}
