@@ -4,6 +4,7 @@ import { ExternalBlob } from "../backend";
 import type {
   PlayerProfile,
   SocialLinks,
+  TournamentEntry,
   Trophies,
   UserRole,
 } from "../backend.d";
@@ -238,6 +239,129 @@ export function useAssignRole() {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["isAdmin"] });
       void qc.invalidateQueries({ queryKey: ["callerRole"] });
+    },
+  });
+}
+
+export function useUpdateGameTags() {
+  const { actor } = useActor();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (gameTags: string[]) => {
+      if (!actor) throw new Error("Not connected");
+      await actor.updateGameTags(gameTags);
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["approvedProfiles"] });
+      void qc.invalidateQueries({ queryKey: ["pendingProfiles"] });
+      void qc.invalidateQueries({ queryKey: ["profile"] });
+    },
+  });
+}
+
+// ── Tournament Entries ────────────────────────────────────────────────
+
+export function useTournamentEntries(owner: Principal | null) {
+  const { actor, isFetching } = useActor();
+  return useQuery<TournamentEntry[]>({
+    queryKey: ["tournamentEntries", owner?.toString()],
+    queryFn: async () => {
+      if (!actor || !owner) return [];
+      return actor.getTournamentEntries(owner);
+    },
+    enabled: !!actor && !isFetching && !!owner,
+  });
+}
+
+export function useAdminAddTournamentEntry() {
+  const { actor } = useActor();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      owner,
+      event,
+      earned,
+      place,
+      link,
+    }: {
+      owner: Principal;
+      event: string;
+      earned: string;
+      place: string;
+      link?: string | null;
+    }) => {
+      if (!actor) throw new Error("Not connected");
+      await actor.adminAddTournamentEntry(
+        owner,
+        event,
+        earned,
+        place,
+        link ?? null,
+      );
+    },
+    onSuccess: (_data, variables) => {
+      void qc.invalidateQueries({
+        queryKey: ["tournamentEntries", variables.owner.toString()],
+      });
+    },
+  });
+}
+
+export function useAdminEditTournamentEntry() {
+  const { actor } = useActor();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      owner,
+      entryId,
+      event,
+      earned,
+      place,
+      link,
+    }: {
+      owner: Principal;
+      entryId: bigint;
+      event: string;
+      earned: string;
+      place: string;
+      link?: string | null;
+    }) => {
+      if (!actor) throw new Error("Not connected");
+      await actor.adminEditTournamentEntry(
+        owner,
+        entryId,
+        event,
+        earned,
+        place,
+        link ?? null,
+      );
+    },
+    onSuccess: (_data, variables) => {
+      void qc.invalidateQueries({
+        queryKey: ["tournamentEntries", variables.owner.toString()],
+      });
+    },
+  });
+}
+
+export function useAdminDeleteTournamentEntry() {
+  const { actor } = useActor();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      owner,
+      entryId,
+    }: {
+      owner: Principal;
+      entryId: bigint;
+    }) => {
+      if (!actor) throw new Error("Not connected");
+      await actor.adminDeleteTournamentEntry(owner, entryId);
+    },
+    onSuccess: (_data, variables) => {
+      void qc.invalidateQueries({
+        queryKey: ["tournamentEntries", variables.owner.toString()],
+      });
     },
   });
 }

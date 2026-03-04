@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 import { Footer } from "./components/Footer";
 import { Navbar } from "./components/Navbar";
 import { AdminPage } from "./pages/AdminPage";
+import { AdminSetupPage } from "./pages/AdminSetupPage";
 import { IndexPage } from "./pages/IndexPage";
 import { PlayerDetailPage } from "./pages/PlayerDetailPage";
 import { RegisterPage } from "./pages/RegisterPage";
@@ -73,11 +74,18 @@ const adminRoute = createRoute({
   component: AdminPage,
 });
 
+const adminSetupRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/admin-setup",
+  component: AdminSetupPage,
+});
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   playerRoute,
   registerRoute,
   adminRoute,
+  adminSetupRoute,
 ]);
 
 const router = createRouter({ routeTree });

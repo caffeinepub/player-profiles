@@ -1,5 +1,6 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -22,9 +23,11 @@ import {
   useCreateProfile,
   useProfile,
   useSetAvatar,
+  useUpdateGameTags,
   useUpdateProfile,
 } from "../hooks/useQueries";
 import { COUNTRIES } from "../utils/countries";
+import { GAME_TAGS } from "../utils/tags";
 
 export function RegisterPage() {
   const { identity, login, isLoggingIn } = useInternetIdentity();
@@ -38,6 +41,7 @@ export function RegisterPage() {
   const createProfile = useCreateProfile();
   const updateProfile = useUpdateProfile();
   const setAvatar = useSetAvatar();
+  const updateGameTags = useUpdateGameTags();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -51,6 +55,7 @@ export function RegisterPage() {
   const [steam, setSteam] = useState("");
   const [discord, setDiscord] = useState("");
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [selectedGameTags, setSelectedGameTags] = useState<string[]>([]);
 
   const isEditing = !!existingProfile;
 
@@ -66,8 +71,15 @@ export function RegisterPage() {
       setInstagram(existingProfile.socialLinks.instagram ?? "");
       setSteam(existingProfile.socialLinks.steam ?? "");
       setDiscord(existingProfile.socialLinks.discord ?? "");
+      setSelectedGameTags(existingProfile.gameTags ?? []);
     }
   }, [existingProfile]);
+
+  function toggleGameTag(tagId: string) {
+    setSelectedGameTags((prev) =>
+      prev.includes(tagId) ? prev.filter((t) => t !== tagId) : [...prev, tagId],
+    );
+  }
 
   async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -105,9 +117,15 @@ export function RegisterPage() {
     try {
       if (isEditing) {
         await updateProfile.mutateAsync({ name, country, bio, socialLinks });
-        toast.success("Profile updated!");
+        // Save game tags
+        await updateGameTags.mutateAsync(selectedGameTags);
+        toast.success("Profile saved!");
       } else {
         await createProfile.mutateAsync({ name, country, bio, socialLinks });
+        // Save game tags after profile creation if any selected
+        if (selectedGameTags.length > 0) {
+          await updateGameTags.mutateAsync(selectedGameTags);
+        }
         toast.success("Profile created! Awaiting admin approval.");
       }
     } catch {
@@ -148,7 +166,10 @@ export function RegisterPage() {
     );
   }
 
-  const isMutating = createProfile.isPending || updateProfile.isPending;
+  const isMutating =
+    createProfile.isPending ||
+    updateProfile.isPending ||
+    updateGameTags.isPending;
   const currentAvatarDisplay = avatarPreview ?? avatarUrl;
 
   return (
@@ -235,11 +256,18 @@ export function RegisterPage() {
           <Label htmlFor="country">
             Country <span className="text-destructive">*</span>
           </Label>
-          <Select value={country} onValueChange={setCountry} required>
+          <Select
+            value={country || "__none__"}
+            onValueChange={(v) => setCountry(v === "__none__" ? "" : v)}
+            required
+          >
             <SelectTrigger id="country" data-ocid="register.country.input">
               <SelectValue placeholder="Select your country" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="max-h-64 overflow-y-auto">
+              <SelectItem value="__none__">
+                -- Select your country --
+              </SelectItem>
               {COUNTRIES.map((c) => (
                 <SelectItem key={c.code} value={c.code}>
                   {c.flag} {c.name}
@@ -258,6 +286,38 @@ export function RegisterPage() {
             placeholder="Tell us about yourself..."
             rows={3}
           />
+        </div>
+
+        {/* Games I Play */}
+        <div className="space-y-3">
+          <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide text-xs">
+            Games I Play
+          </p>
+          <div
+            className="grid grid-cols-2 gap-2"
+            data-ocid="register.game_tags.panel"
+          >
+            {GAME_TAGS.map((tag) => (
+              <label
+                key={tag.id}
+                htmlFor={`game-${tag.id}`}
+                className="flex items-center gap-2 cursor-pointer rounded border border-border bg-secondary/30 px-3 py-2 hover:border-primary/40 transition-colors"
+              >
+                <Checkbox
+                  id={`game-${tag.id}`}
+                  checked={selectedGameTags.includes(tag.id)}
+                  onCheckedChange={() => toggleGameTag(tag.id)}
+                  data-ocid="register.game_tags.checkbox"
+                />
+                <span
+                  className={`inline-flex items-center justify-center h-5 w-5 rounded bg-secondary ${tag.color}`}
+                >
+                  <tag.Icon className="h-3 w-3" />
+                </span>
+                <span className="text-sm">{tag.label}</span>
+              </label>
+            ))}
+          </div>
         </div>
 
         {/* Social links */}

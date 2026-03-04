@@ -15,11 +15,14 @@ import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import { useApprovedProfiles } from "../hooks/useQueries";
 import { useIsAdmin } from "../hooks/useQueries";
 import { getCountryName, getFlag } from "../utils/countries";
+import { GAME_TAGS } from "../utils/tags";
 import { getPersistedUrlParameter } from "../utils/urlParams";
 
 export function IndexPage() {
   const { data: profiles, isLoading } = useApprovedProfiles();
   const [countryFilter, setCountryFilter] = useState<string>("all");
+  const [trophyFilter, setTrophyFilter] = useState<string>("all");
+  const [gameTagFilter, setGameTagFilter] = useState<string>("all");
   const [isEmbed, setIsEmbed] = useState(false);
   const { login, clear, identity, isInitializing, isLoggingIn } =
     useInternetIdentity();
@@ -44,13 +47,38 @@ export function IndexPage() {
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [profiles]);
 
+  // Game tags that have at least one player
+  const presentGameTags = useMemo(() => {
+    if (!profiles) return [];
+    const usedIds = new Set(profiles.flatMap((p) => p.gameTags ?? []));
+    return GAME_TAGS.filter((tag) => usedIds.has(tag.id));
+  }, [profiles]);
+
   const filtered = useMemo(() => {
     if (!profiles) return [];
-    if (countryFilter === "all") return profiles;
-    return profiles.filter(
-      (p) => p.country.toUpperCase() === countryFilter.toUpperCase(),
-    );
-  }, [profiles, countryFilter]);
+    let result = profiles;
+    if (countryFilter !== "all") {
+      result = result.filter(
+        (p) => p.country.toUpperCase() === countryFilter.toUpperCase(),
+      );
+    }
+    if (trophyFilter !== "all") {
+      result = result.filter((p) => {
+        const gold = Number(p.trophies.gold);
+        const silver = Number(p.trophies.silver);
+        const bronze = Number(p.trophies.bronze);
+        if (trophyFilter === "any") return gold > 0 || silver > 0 || bronze > 0;
+        if (trophyFilter === "gold") return gold > 0;
+        if (trophyFilter === "silver") return silver > 0;
+        if (trophyFilter === "bronze") return bronze > 0;
+        return true;
+      });
+    }
+    if (gameTagFilter !== "all") {
+      result = result.filter((p) => (p.gameTags ?? []).includes(gameTagFilter));
+    }
+    return result;
+  }, [profiles, countryFilter, trophyFilter, gameTagFilter]);
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-8">
@@ -119,12 +147,12 @@ export function IndexPage() {
       </section>
 
       {/* Filters */}
-      <div className="mb-6 flex items-center gap-3">
+      <div className="mb-6 flex flex-wrap items-center gap-3">
         <label
           htmlFor="country-filter"
           className="text-sm text-muted-foreground font-medium"
         >
-          Filter by country:
+          Country:
         </label>
         <Select value={countryFilter} onValueChange={setCountryFilter}>
           <SelectTrigger
@@ -143,6 +171,64 @@ export function IndexPage() {
             ))}
           </SelectContent>
         </Select>
+
+        <label
+          htmlFor="trophy-filter"
+          className="text-sm text-muted-foreground font-medium"
+        >
+          Trophies:
+        </label>
+        <Select value={trophyFilter} onValueChange={setTrophyFilter}>
+          <SelectTrigger
+            id="trophy-filter"
+            className="w-44"
+            data-ocid="index.trophy_filter.select"
+          >
+            <SelectValue placeholder="All players" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All players</SelectItem>
+            <SelectItem value="any">🏅 Has trophies</SelectItem>
+            <SelectItem value="gold">🥇 Has gold</SelectItem>
+            <SelectItem value="silver">🥈 Has silver</SelectItem>
+            <SelectItem value="bronze">🥉 Has bronze</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {presentGameTags.length > 0 && (
+          <>
+            <label
+              htmlFor="game-filter"
+              className="text-sm text-muted-foreground font-medium"
+            >
+              Game:
+            </label>
+            <Select value={gameTagFilter} onValueChange={setGameTagFilter}>
+              <SelectTrigger
+                id="game-filter"
+                className="w-44"
+                data-ocid="index.game_filter.select"
+              >
+                <SelectValue placeholder="All games" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All games</SelectItem>
+                {presentGameTags.map((tag) => (
+                  <SelectItem key={tag.id} value={tag.id}>
+                    <span className="flex items-center gap-2">
+                      <span
+                        className={`inline-flex items-center justify-center h-4 w-4 ${tag.color}`}
+                      >
+                        <tag.Icon className="h-4 w-4" />
+                      </span>
+                      {tag.label}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </>
+        )}
       </div>
 
       {/* Player grid */}

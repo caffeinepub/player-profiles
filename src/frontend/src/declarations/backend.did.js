@@ -53,7 +53,15 @@ export const PlayerProfile = IDL.Record({
   'tags' : IDL.Vec(IDL.Text),
   'highlightVideoUrl' : IDL.Opt(IDL.Text),
   'trophies' : Trophies,
+  'gameTags' : IDL.Vec(IDL.Text),
   'avatar' : IDL.Opt(ExternalBlob),
+});
+export const TournamentEntry = IDL.Record({
+  'id' : IDL.Nat,
+  'link' : IDL.Opt(IDL.Text),
+  'event' : IDL.Text,
+  'earned' : IDL.Text,
+  'place' : IDL.Text,
 });
 
 export const idlService = IDL.Service({
@@ -84,6 +92,17 @@ export const idlService = IDL.Service({
     ),
   '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
+  'adminAddTournamentEntry' : IDL.Func(
+      [IDL.Principal, IDL.Text, IDL.Text, IDL.Text, IDL.Opt(IDL.Text)],
+      [],
+      [],
+    ),
+  'adminDeleteTournamentEntry' : IDL.Func([IDL.Principal, IDL.Nat], [], []),
+  'adminEditTournamentEntry' : IDL.Func(
+      [IDL.Principal, IDL.Nat, IDL.Text, IDL.Text, IDL.Text, IDL.Opt(IDL.Text)],
+      [],
+      [],
+    ),
   'adminUpdateProfile' : IDL.Func(
       [
         IDL.Principal,
@@ -105,13 +124,27 @@ export const idlService = IDL.Service({
       [],
       [],
     ),
+  'deleteProfile' : IDL.Func([IDL.Principal], [], []),
   'getApprovedProfiles' : IDL.Func([], [IDL.Vec(PlayerProfile)], ['query']),
+  'getCallerUserProfile' : IDL.Func([], [IDL.Opt(PlayerProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
   'getPendingProfiles' : IDL.Func([], [IDL.Vec(PlayerProfile)], ['query']),
   'getProfile' : IDL.Func([IDL.Principal], [PlayerProfile], ['query']),
+  'getTournamentEntries' : IDL.Func(
+      [IDL.Principal],
+      [IDL.Vec(TournamentEntry)],
+      ['query'],
+    ),
+  'getUserProfile' : IDL.Func(
+      [IDL.Principal],
+      [IDL.Opt(PlayerProfile)],
+      ['query'],
+    ),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
   'rejectProfile' : IDL.Func([IDL.Principal], [], []),
+  'saveCallerUserProfile' : IDL.Func([PlayerProfile], [], []),
   'setAvatar' : IDL.Func([ExternalBlob], [], []),
+  'updateGameTags' : IDL.Func([IDL.Vec(IDL.Text)], [], []),
   'updateProfile' : IDL.Func(
       [IDL.Text, IDL.Text, IDL.Text, SocialLinks],
       [],
@@ -167,7 +200,15 @@ export const idlFactory = ({ IDL }) => {
     'tags' : IDL.Vec(IDL.Text),
     'highlightVideoUrl' : IDL.Opt(IDL.Text),
     'trophies' : Trophies,
+    'gameTags' : IDL.Vec(IDL.Text),
     'avatar' : IDL.Opt(ExternalBlob),
+  });
+  const TournamentEntry = IDL.Record({
+    'id' : IDL.Nat,
+    'link' : IDL.Opt(IDL.Text),
+    'event' : IDL.Text,
+    'earned' : IDL.Text,
+    'place' : IDL.Text,
   });
   
   return IDL.Service({
@@ -198,6 +239,24 @@ export const idlFactory = ({ IDL }) => {
       ),
     '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
+    'adminAddTournamentEntry' : IDL.Func(
+        [IDL.Principal, IDL.Text, IDL.Text, IDL.Text, IDL.Opt(IDL.Text)],
+        [],
+        [],
+      ),
+    'adminDeleteTournamentEntry' : IDL.Func([IDL.Principal, IDL.Nat], [], []),
+    'adminEditTournamentEntry' : IDL.Func(
+        [
+          IDL.Principal,
+          IDL.Nat,
+          IDL.Text,
+          IDL.Text,
+          IDL.Text,
+          IDL.Opt(IDL.Text),
+        ],
+        [],
+        [],
+      ),
     'adminUpdateProfile' : IDL.Func(
         [
           IDL.Principal,
@@ -219,13 +278,27 @@ export const idlFactory = ({ IDL }) => {
         [],
         [],
       ),
+    'deleteProfile' : IDL.Func([IDL.Principal], [], []),
     'getApprovedProfiles' : IDL.Func([], [IDL.Vec(PlayerProfile)], ['query']),
+    'getCallerUserProfile' : IDL.Func([], [IDL.Opt(PlayerProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
     'getPendingProfiles' : IDL.Func([], [IDL.Vec(PlayerProfile)], ['query']),
     'getProfile' : IDL.Func([IDL.Principal], [PlayerProfile], ['query']),
+    'getTournamentEntries' : IDL.Func(
+        [IDL.Principal],
+        [IDL.Vec(TournamentEntry)],
+        ['query'],
+      ),
+    'getUserProfile' : IDL.Func(
+        [IDL.Principal],
+        [IDL.Opt(PlayerProfile)],
+        ['query'],
+      ),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
     'rejectProfile' : IDL.Func([IDL.Principal], [], []),
+    'saveCallerUserProfile' : IDL.Func([PlayerProfile], [], []),
     'setAvatar' : IDL.Func([ExternalBlob], [], []),
+    'updateGameTags' : IDL.Func([IDL.Vec(IDL.Text)], [], []),
     'updateProfile' : IDL.Func(
         [IDL.Text, IDL.Text, IDL.Text, SocialLinks],
         [],

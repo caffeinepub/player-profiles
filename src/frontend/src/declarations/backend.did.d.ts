@@ -21,6 +21,7 @@ export interface PlayerProfile {
   'tags' : Array<string>,
   'highlightVideoUrl' : [] | [string],
   'trophies' : Trophies,
+  'gameTags' : Array<string>,
   'avatar' : [] | [ExternalBlob],
 }
 export type ProfileStatus = { 'pending' : null } |
@@ -33,6 +34,13 @@ export interface SocialLinks {
   'steam' : [] | [string],
   'discord' : [] | [string],
   'youtube' : [] | [string],
+}
+export interface TournamentEntry {
+  'id' : bigint,
+  'link' : [] | [string],
+  'event' : string,
+  'earned' : string,
+  'place' : string,
 }
 export interface Trophies {
   'bronze' : bigint,
@@ -70,6 +78,15 @@ export interface _SERVICE {
   >,
   '_caffeineStorageUpdateGatewayPrincipals' : ActorMethod<[], undefined>,
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
+  'adminAddTournamentEntry' : ActorMethod<
+    [Principal, string, string, string, [] | [string]],
+    undefined
+  >,
+  'adminDeleteTournamentEntry' : ActorMethod<[Principal, bigint], undefined>,
+  'adminEditTournamentEntry' : ActorMethod<
+    [Principal, bigint, string, string, string, [] | [string]],
+    undefined
+  >,
   'adminUpdateProfile' : ActorMethod<
     [
       Principal,
@@ -89,13 +106,19 @@ export interface _SERVICE {
     [string, string, string, SocialLinks],
     undefined
   >,
+  'deleteProfile' : ActorMethod<[Principal], undefined>,
   'getApprovedProfiles' : ActorMethod<[], Array<PlayerProfile>>,
+  'getCallerUserProfile' : ActorMethod<[], [] | [PlayerProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
   'getPendingProfiles' : ActorMethod<[], Array<PlayerProfile>>,
   'getProfile' : ActorMethod<[Principal], PlayerProfile>,
+  'getTournamentEntries' : ActorMethod<[Principal], Array<TournamentEntry>>,
+  'getUserProfile' : ActorMethod<[Principal], [] | [PlayerProfile]>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'rejectProfile' : ActorMethod<[Principal], undefined>,
+  'saveCallerUserProfile' : ActorMethod<[PlayerProfile], undefined>,
   'setAvatar' : ActorMethod<[ExternalBlob], undefined>,
+  'updateGameTags' : ActorMethod<[Array<string>], undefined>,
   'updateProfile' : ActorMethod<
     [string, string, string, SocialLinks],
     undefined

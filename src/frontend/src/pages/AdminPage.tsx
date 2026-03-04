@@ -18,24 +18,57 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Check, Loader2, Pencil, Shield, Users, X } from "lucide-react";
-import { useState } from "react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  Check,
+  Loader2,
+  Medal,
+  Pencil,
+  Shield,
+  Trash2,
+  Users,
+  X,
+} from "lucide-react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import type { PlayerProfile, SocialLinks, Trophies } from "../backend.d";
+import type {
+  PlayerProfile,
+  SocialLinks,
+  TournamentEntry,
+  Trophies,
+} from "../backend.d";
 import { useAvatarUrl } from "../hooks/useAvatarUrl";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import {
+  useAdminAddTournamentEntry,
+  useAdminDeleteTournamentEntry,
+  useAdminEditTournamentEntry,
   useAdminUpdateProfile,
   useApproveProfile,
   useApprovedProfiles,
   useIsAdmin,
   usePendingProfiles,
   useRejectProfile,
+  useTournamentEntries,
 } from "../hooks/useQueries";
 import { COUNTRIES, getCountryName, getFlag } from "../utils/countries";
-import { PLAYER_TAGS } from "../utils/tags";
+import { ROLE_TAGS, getTag } from "../utils/tags";
 
 // ── Mini profile row ───────────────────────────────────────────────────
 
@@ -139,9 +172,15 @@ function EditProfileDialog({
   onClose: () => void;
 }) {
   const adminUpdate = useAdminUpdateProfile();
+  const addEntry = useAdminAddTournamentEntry();
+  const editEntry = useAdminEditTournamentEntry();
+  const deleteEntry = useAdminDeleteTournamentEntry();
+
+  const { data: tournamentEntries, isLoading: entriesLoading } =
+    useTournamentEntries(profile?.owner ?? null);
 
   const [name, setName] = useState(profile?.name ?? "");
-  const [country, setCountry] = useState(profile?.country ?? "");
+  const [country, setCountry] = useState(profile?.country || "");
   const [bio, setBio] = useState(profile?.bio ?? "");
   const [highlightUrl, setHighlightUrl] = useState(
     profile?.highlightVideoUrl ?? "",
@@ -153,24 +192,98 @@ function EditProfileDialog({
   const [silver, setSilver] = useState(String(profile?.trophies.silver ?? 0));
   const [bronze, setBronze] = useState(String(profile?.trophies.bronze ?? 0));
 
-  // Reset on profile change
-  useState(() => {
+  // Competition Record form state
+  const [entryEvent, setEntryEvent] = useState("");
+  const [entryEarned, setEntryEarned] = useState("");
+  const [entryPlace, setEntryPlace] = useState("");
+  const [entryLink, setEntryLink] = useState("");
+  const [editingEntry, setEditingEntry] = useState<TournamentEntry | null>(
+    null,
+  );
+
+  // Reset state whenever the profile changes (dialog opens for a different player)
+  const profileKey = profile?.owner?.toString();
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reset on profile identity change
+  useEffect(() => {
     if (profile) {
       setName(profile.name);
-      setCountry(profile.country);
+      setCountry(profile.country || "");
       setBio(profile.bio);
       setHighlightUrl(profile.highlightVideoUrl ?? "");
-      setSelectedTags(profile.tags);
+      setSelectedTags([...profile.tags]);
       setGold(String(profile.trophies.gold));
       setSilver(String(profile.trophies.silver));
       setBronze(String(profile.trophies.bronze));
+      // Reset competition form on profile change
+      setEntryEvent("");
+      setEntryEarned("");
+      setEntryPlace("");
+      setEntryLink("");
+      setEditingEntry(null);
     }
-  });
+  }, [profileKey]);
 
   function toggleTag(tagId: string) {
     setSelectedTags((prev) =>
       prev.includes(tagId) ? prev.filter((t) => t !== tagId) : [...prev, tagId],
     );
+  }
+
+  function startEditEntry(entry: TournamentEntry) {
+    setEditingEntry(entry);
+    setEntryEvent(entry.event);
+    setEntryEarned(entry.earned);
+    setEntryPlace(entry.place);
+    setEntryLink(entry.link ?? "");
+  }
+
+  function cancelEditEntry() {
+    setEditingEntry(null);
+    setEntryEvent("");
+    setEntryEarned("");
+    setEntryPlace("");
+    setEntryLink("");
+  }
+
+  async function handleAddOrSaveEntry() {
+    if (!profile || !entryEvent.trim()) return;
+    try {
+      if (editingEntry) {
+        await editEntry.mutateAsync({
+          owner: profile.owner,
+          entryId: editingEntry.id,
+          event: entryEvent.trim(),
+          earned: entryEarned.trim(),
+          place: entryPlace.trim(),
+          link: entryLink.trim() || null,
+        });
+        toast.success("Entry updated");
+      } else {
+        await addEntry.mutateAsync({
+          owner: profile.owner,
+          event: entryEvent.trim(),
+          earned: entryEarned.trim(),
+          place: entryPlace.trim(),
+          link: entryLink.trim() || null,
+        });
+        toast.success("Entry added");
+      }
+      cancelEditEntry();
+    } catch {
+      toast.error(
+        editingEntry ? "Failed to update entry" : "Failed to add entry",
+      );
+    }
+  }
+
+  async function handleDeleteEntry(entryId: bigint) {
+    if (!profile) return;
+    try {
+      await deleteEntry.mutateAsync({ owner: profile.owner, entryId });
+      toast.success("Entry deleted");
+    } catch {
+      toast.error("Failed to delete entry");
+    }
   }
 
   async function handleSave() {
@@ -219,11 +332,15 @@ function EditProfileDialog({
           {/* Country */}
           <div className="space-y-1.5">
             <Label className="text-xs">Country</Label>
-            <Select value={country} onValueChange={setCountry}>
+            <Select
+              value={country || "__none__"}
+              onValueChange={(v) => setCountry(v === "__none__" ? "" : v)}
+            >
               <SelectTrigger>
-                <SelectValue />
+                <SelectValue placeholder="Select country" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="max-h-64 overflow-y-auto">
+                <SelectItem value="__none__">-- Select country --</SelectItem>
                 {COUNTRIES.map((c) => (
                   <SelectItem key={c.code} value={c.code}>
                     {c.flag} {c.name}
@@ -233,28 +350,75 @@ function EditProfileDialog({
             </Select>
           </div>
 
-          {/* Tags */}
+          {/* Role Tags (admin assigns) */}
           <div className="space-y-2">
-            <Label className="text-xs">Tags</Label>
+            <Label className="text-xs">Role Tags</Label>
             <div className="flex flex-wrap gap-2" data-ocid="admin.tags.select">
-              {PLAYER_TAGS.map((tag) => (
+              {ROLE_TAGS.map((tag) => (
                 <label
                   key={tag.id}
                   htmlFor={`tag-${tag.id}`}
-                  className="flex items-center gap-1.5 cursor-pointer text-sm"
+                  className="flex items-center gap-2 cursor-pointer text-sm rounded border border-border bg-secondary/30 px-2.5 py-1.5 hover:border-primary/40 transition-colors"
                 >
                   <Checkbox
                     id={`tag-${tag.id}`}
                     checked={selectedTags.includes(tag.id)}
                     onCheckedChange={() => toggleTag(tag.id)}
                   />
-                  <span>
-                    {tag.icon} {tag.label}
+                  <span
+                    className={`inline-flex items-center justify-center h-4 w-4 ${tag.color}`}
+                  >
+                    <tag.Icon className="h-4 w-4" />
                   </span>
+                  <span>{tag.label}</span>
                 </label>
               ))}
             </div>
           </div>
+
+          {/* Game Tags (read-only for admin) */}
+          {profile.gameTags && profile.gameTags.length > 0 && (
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">
+                Player&apos;s Game Tags (read-only)
+              </Label>
+              <div className="flex flex-wrap gap-1.5">
+                <TooltipProvider delayDuration={200}>
+                  {profile.gameTags.map((tagId) => {
+                    const tag = getTag(tagId);
+                    if (!tag) return null;
+                    return (
+                      <Tooltip key={tagId}>
+                        <TooltipTrigger asChild>
+                          <span
+                            className={`inline-flex items-center gap-1.5 px-2 py-1 rounded bg-secondary border border-border text-xs ${tag.color}`}
+                          >
+                            <tag.Icon className="h-3.5 w-3.5" />
+                            {tag.label}
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="text-xs">
+                          {tag.label}
+                        </TooltipContent>
+                      </Tooltip>
+                    );
+                  })}
+                </TooltipProvider>
+              </div>
+            </div>
+          )}
+
+          {/* Game Tags empty state */}
+          {(!profile.gameTags || profile.gameTags.length === 0) && (
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">
+                Player&apos;s Game Tags (read-only)
+              </Label>
+              <p className="text-xs text-muted-foreground italic">
+                No game tags selected by player.
+              </p>
+            </div>
+          )}
 
           {/* Trophies */}
           <div className="space-y-2">
@@ -301,6 +465,194 @@ function EditProfileDialog({
               onChange={(e) => setHighlightUrl(e.target.value)}
               placeholder="https://youtube.com/watch?v=..."
             />
+          </div>
+
+          {/* Competition Record */}
+          <Separator className="my-2" />
+          <div className="space-y-3">
+            <Label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              Competition Record
+            </Label>
+
+            {/* Entry list */}
+            {entriesLoading ? (
+              <div
+                className="space-y-2"
+                data-ocid="admin.competition.loading_state"
+              >
+                <Skeleton className="h-8 w-full rounded" />
+                <Skeleton className="h-8 w-full rounded" />
+              </div>
+            ) : !tournamentEntries || tournamentEntries.length === 0 ? (
+              <p
+                className="text-xs text-muted-foreground italic"
+                data-ocid="admin.competition.empty_state"
+              >
+                No entries yet.
+              </p>
+            ) : (
+              <div className="rounded border border-border overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-border hover:bg-transparent">
+                      <TableHead className="text-xs py-2">Event</TableHead>
+                      <TableHead className="text-xs py-2">Earned</TableHead>
+                      <TableHead className="text-xs py-2">Place</TableHead>
+                      <TableHead className="text-xs py-2 w-16" />
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {tournamentEntries.map((entry, i) => (
+                      <TableRow
+                        key={String(entry.id)}
+                        className="border-border hover:bg-secondary/40"
+                        data-ocid={`admin.competition.row.${i + 1}`}
+                      >
+                        <TableCell className="text-xs py-2 max-w-[120px] truncate">
+                          {entry.link ? (
+                            <a
+                              href={entry.link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary hover:underline"
+                            >
+                              {entry.event}
+                            </a>
+                          ) : (
+                            entry.event
+                          )}
+                        </TableCell>
+                        <TableCell className="text-xs py-2 text-muted-foreground">
+                          {entry.earned || "—"}
+                        </TableCell>
+                        <TableCell className="text-xs py-2">
+                          {entry.place === "1" ? (
+                            <span className="flex items-center gap-1 text-yellow-400">
+                              <Medal className="h-3 w-3" /> 1st
+                            </span>
+                          ) : entry.place === "2" ? (
+                            <span className="flex items-center gap-1 text-slate-300">
+                              <Medal className="h-3 w-3" /> 2nd
+                            </span>
+                          ) : entry.place === "3" ? (
+                            <span className="flex items-center gap-1 text-amber-600">
+                              <Medal className="h-3 w-3" /> 3rd
+                            </span>
+                          ) : (
+                            entry.place
+                          )}
+                        </TableCell>
+                        <TableCell className="py-2">
+                          <div className="flex items-center gap-1">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                              onClick={() => startEditEntry(entry)}
+                              data-ocid={`admin.competition.entry.edit_button.${i + 1}`}
+                              title="Edit"
+                            >
+                              <Pencil className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                              disabled={deleteEntry.isPending}
+                              onClick={() => handleDeleteEntry(entry.id)}
+                              data-ocid={`admin.competition.entry.delete_button.${i + 1}`}
+                              title="Delete"
+                            >
+                              {deleteEntry.isPending ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <Trash2 className="h-3 w-3" />
+                              )}
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+
+            {/* Add / Edit form */}
+            <div className="space-y-2 pt-1">
+              <p className="text-xs text-muted-foreground font-medium">
+                {editingEntry ? "Edit Entry" : "Add Entry"}
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                <Input
+                  value={entryEvent}
+                  onChange={(e) => setEntryEvent(e.target.value)}
+                  placeholder="Event name"
+                  className="text-xs h-8"
+                  data-ocid="admin.competition.event.input"
+                />
+                <Input
+                  value={entryEarned}
+                  onChange={(e) => setEntryEarned(e.target.value)}
+                  placeholder="e.g. $20, item"
+                  className="text-xs h-8"
+                  data-ocid="admin.competition.earned.input"
+                />
+                <Input
+                  value={entryPlace}
+                  onChange={(e) => setEntryPlace(e.target.value)}
+                  placeholder="e.g. 1, 2, 4th, DNF"
+                  className="text-xs h-8"
+                  data-ocid="admin.competition.place.input"
+                />
+              </div>
+              <Input
+                value={entryLink}
+                onChange={(e) => setEntryLink(e.target.value)}
+                placeholder="Link URL (optional)"
+                className="text-xs h-8"
+                data-ocid="admin.competition.link.input"
+              />
+              <div className="flex items-center gap-2">
+                {editingEntry ? (
+                  <>
+                    <Button
+                      size="sm"
+                      className="h-7 text-xs bg-primary text-primary-foreground"
+                      disabled={!entryEvent.trim() || editEntry.isPending}
+                      onClick={handleAddOrSaveEntry}
+                      data-ocid="admin.competition.save_button"
+                    >
+                      {editEntry.isPending && (
+                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                      )}
+                      Save
+                    </Button>
+                    <button
+                      type="button"
+                      className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors"
+                      onClick={cancelEditEntry}
+                      data-ocid="admin.competition.cancel_button"
+                    >
+                      Cancel
+                    </button>
+                  </>
+                ) : (
+                  <Button
+                    size="sm"
+                    className="h-7 text-xs bg-primary text-primary-foreground"
+                    disabled={!entryEvent.trim() || addEntry.isPending}
+                    onClick={handleAddOrSaveEntry}
+                    data-ocid="admin.competition.add_button"
+                  >
+                    {addEntry.isPending && (
+                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                    )}
+                    Add
+                  </Button>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
