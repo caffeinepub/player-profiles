@@ -5,14 +5,13 @@ import Order "mo:core/Order";
 import List "mo:core/List";
 import Runtime "mo:core/Runtime";
 import Principal "mo:core/Principal";
-
-import MixinAuthorization "authorization/MixinAuthorization";
 import Storage "blob-storage/Storage";
 import MixinStorage "blob-storage/Mixin";
 import AccessControl "authorization/access-control";
-
 import Migration "migration";
+import MixinAuthorization "authorization/MixinAuthorization";
 
+// Apply data migration on upgrade
 (with migration = Migration.run)
 actor {
   include MixinStorage();
@@ -64,7 +63,7 @@ actor {
     link : ?Text;
   };
 
-  // Internal state
+  // Persistent state
   let profiles = Map.empty<Principal, PlayerProfile>();
   let tournamentEntries = Map.empty<Principal, List.List<TournamentEntry>>();
 
@@ -503,5 +502,4 @@ actor {
     };
     maxId + 1;
   };
-
 };

@@ -2,7 +2,6 @@ import Map "mo:core/Map";
 import List "mo:core/List";
 import Principal "mo:core/Principal";
 import Storage "blob-storage/Storage";
-import Nat "mo:core/Nat";
 
 module {
   type ProfileStatus = {
@@ -26,7 +25,7 @@ module {
     bronze : Nat;
   };
 
-  public type PlayerProfile = {
+  type PlayerProfile = {
     name : Text;
     country : Text;
     bio : Text;
@@ -37,10 +36,10 @@ module {
     highlightVideoUrl : ?Text;
     avatar : ?Storage.ExternalBlob;
     status : ProfileStatus;
-    owner : Principal;
+    owner : Principal.Principal;
   };
 
-  public type TournamentEntry = {
+  type TournamentEntry = {
     id : Nat;
     event : Text;
     earned : Text;
@@ -48,19 +47,9 @@ module {
     link : ?Text;
   };
 
-  type OldActor = {
-    profiles : Map.Map<Principal, PlayerProfile>;
-    tournamentEntries : Map.Map<Principal, List.List<TournamentEntry>>;
-    nextEntryId : Nat;
-  };
-
-  public func run(old : OldActor) : {
-    profiles : Map.Map<Principal, PlayerProfile>;
-    tournamentEntries : Map.Map<Principal, List.List<TournamentEntry>>;
-  } {
-    {
-      profiles = old.profiles;
-      tournamentEntries = old.tournamentEntries;
-    };
+  public func run(old : {}) : {} {
+    let profiles = Map.empty<Principal.Principal, PlayerProfile>();
+    let tournamentEntries = Map.empty<Principal.Principal, List.List<TournamentEntry>>();
+    {};
   };
 };
