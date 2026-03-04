@@ -23,7 +23,7 @@
 
     /* ── Custom RJZ palette (exact hex values mapped to OKLCH) ── */
     /* #18181b  main-dark  → background */
-    --background: 0.139 0.004 286;
+    --background: 0.150 0.006 286;
     /* #dedede  main-text  → foreground */
     --foreground: 0.893 0 0;
 

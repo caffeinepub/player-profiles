@@ -209,6 +209,12 @@ export function getFlag(code: string): string {
   return getCountry(code)?.flag ?? "🏳️";
 }
 
+export function getFlagImgUrl(code: string): string {
+  const c = code?.trim()?.toUpperCase();
+  if (!c || c.length !== 2) return "";
+  return `https://flagcdn.com/24x18/${c.toLowerCase()}.png`;
+}
+
 export function getCountryName(code: string): string {
   return getCountry(code)?.name ?? code;
 }

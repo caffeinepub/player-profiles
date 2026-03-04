@@ -67,7 +67,7 @@ import {
   useRejectProfile,
   useTournamentEntries,
 } from "../hooks/useQueries";
-import { COUNTRIES, getCountryName, getFlag } from "../utils/countries";
+import { COUNTRIES, getCountryName, getFlagImgUrl } from "../utils/countries";
 import { ROLE_TAGS, getTag } from "../utils/tags";
 
 // ── Mini profile row ───────────────────────────────────────────────────
@@ -103,8 +103,15 @@ function ProfileRow({
 
       <div className="flex-1 min-w-0">
         <p className="font-medium text-sm truncate">{profile.name}</p>
-        <p className="text-xs text-muted-foreground">
-          {getFlag(profile.country)} {getCountryName(profile.country)}
+        <p className="text-xs text-muted-foreground inline-flex items-center gap-1.5">
+          <img
+            src={getFlagImgUrl(profile.country)}
+            alt={getCountryName(profile.country)}
+            width={18}
+            height={13}
+            className="rounded-sm object-cover"
+          />
+          {getCountryName(profile.country)}
         </p>
       </div>
 
@@ -343,7 +350,16 @@ function EditProfileDialog({
                 <SelectItem value="__none__">-- Select country --</SelectItem>
                 {COUNTRIES.map((c) => (
                   <SelectItem key={c.code} value={c.code}>
-                    {c.flag} {c.name}
+                    <span className="inline-flex items-center gap-2">
+                      <img
+                        src={getFlagImgUrl(c.code)}
+                        alt={c.name}
+                        width={20}
+                        height={15}
+                        className="rounded-sm object-cover inline-block"
+                      />
+                      {c.name}
+                    </span>
                   </SelectItem>
                 ))}
               </SelectContent>

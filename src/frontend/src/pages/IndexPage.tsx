@@ -14,7 +14,7 @@ import { PlayerCard } from "../components/PlayerCard";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import { useApprovedProfiles } from "../hooks/useQueries";
 import { useIsAdmin } from "../hooks/useQueries";
-import { getCountryName, getFlag } from "../utils/countries";
+import { getCountryName, getFlagImgUrl } from "../utils/countries";
 import { GAME_TAGS } from "../utils/tags";
 import { getPersistedUrlParameter } from "../utils/urlParams";
 
@@ -42,7 +42,7 @@ export function IndexPage() {
       .map((code) => ({
         code,
         name: getCountryName(code),
-        flag: getFlag(code),
+        flagUrl: getFlagImgUrl(code),
       }))
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [profiles]);
@@ -166,7 +166,16 @@ export function IndexPage() {
             <SelectItem value="all">🌍 All countries</SelectItem>
             {presentCountries.map((c) => (
               <SelectItem key={c.code} value={c.code}>
-                {c.flag} {c.name}
+                <span className="inline-flex items-center gap-2">
+                  <img
+                    src={c.flagUrl}
+                    alt={c.name}
+                    width={20}
+                    height={15}
+                    className="rounded-sm object-cover inline-block"
+                  />
+                  {c.name}
+                </span>
               </SelectItem>
             ))}
           </SelectContent>

@@ -56,7 +56,7 @@ import type { PlayerProfile } from "../backend.d";
 import { useActor } from "../hooks/useActor";
 import { useAvatarUrl } from "../hooks/useAvatarUrl";
 import { useTournamentEntries } from "../hooks/useQueries";
-import { getCountryName, getFlag } from "../utils/countries";
+import { getCountryName, getFlagImgUrl } from "../utils/countries";
 import { getTag } from "../utils/tags";
 
 function getVideoEmbed(url: string): string | null {
@@ -336,8 +336,14 @@ export function PlayerDetailPage() {
             <TooltipProvider delayDuration={300}>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <span className="text-2xl cursor-default">
-                    {getFlag(profile.country)}
+                  <span className="cursor-default inline-flex items-center">
+                    <img
+                      src={getFlagImgUrl(profile.country)}
+                      alt={getCountryName(profile.country)}
+                      width={28}
+                      height={21}
+                      className="rounded-sm object-cover"
+                    />
                   </span>
                 </TooltipTrigger>
                 <TooltipContent side="top" className="text-xs">

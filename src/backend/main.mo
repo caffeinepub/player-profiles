@@ -8,16 +8,18 @@ import Principal "mo:core/Principal";
 import Storage "blob-storage/Storage";
 import MixinStorage "blob-storage/Mixin";
 import AccessControl "authorization/access-control";
-import Migration "migration";
+
 import MixinAuthorization "authorization/MixinAuthorization";
 
 // Apply data migration on upgrade
-(with migration = Migration.run)
+
 actor {
   include MixinStorage();
 
   let accessControlState = AccessControl.initState();
   include MixinAuthorization(accessControlState);
+
+  stable var OWNER_SECRET : Text = "";
 
   // Types
   type ProfileStatus = {

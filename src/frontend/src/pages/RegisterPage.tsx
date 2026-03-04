@@ -26,7 +26,7 @@ import {
   useUpdateGameTags,
   useUpdateProfile,
 } from "../hooks/useQueries";
-import { COUNTRIES } from "../utils/countries";
+import { COUNTRIES, getFlagImgUrl } from "../utils/countries";
 import { GAME_TAGS } from "../utils/tags";
 
 export function RegisterPage() {
@@ -270,7 +270,16 @@ export function RegisterPage() {
               </SelectItem>
               {COUNTRIES.map((c) => (
                 <SelectItem key={c.code} value={c.code}>
-                  {c.flag} {c.name}
+                  <span className="inline-flex items-center gap-2">
+                    <img
+                      src={getFlagImgUrl(c.code)}
+                      alt={c.name}
+                      width={20}
+                      height={15}
+                      className="rounded-sm object-cover inline-block"
+                    />
+                    {c.name}
+                  </span>
                 </SelectItem>
               ))}
             </SelectContent>
